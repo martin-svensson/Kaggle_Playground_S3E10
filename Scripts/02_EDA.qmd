@@ -1,0 +1,95 @@
+---
+title: "EDA"
+format: html
+---
+
+## Setup
+
+```{r}
+#| output: false
+
+library(data.table)
+library(tidyverse)
+library(magrittr)
+
+library(here) # avoid having to change between . and .. when running interactively vs knitting
+library(DataExplorer)
+library(tidymodels)
+```
+
+```{r load_data}
+#| cache: true
+
+load("Output/01_df_train.RData")
+load(here("Output/01_data_split.RData"))
+```
+
+Use only training data for the EDA
+```{r}
+df_train <- training(data_split)
+```
+
+## Introduction to data
+We will start with a high-level introduction to data:
+
+```{r}
+str(df_train)
+```
+
+```{r}
+df_train %>% 
+  plot_missing()
+```
+A very straight forward data set. Fortunately, no missing values. 
+
+## Marginal Distributions
+
+```{r}
+summary(df_train)
+```
+Are all variables within their appropriate range, or are there faulty observations? Hard to say, since very limitied information is given about the data, so let's just go with it. 
+
+```{r}
+df_train %>%
+  select(!id) %>% 
+  plot_histogram(ncol = 3)
+```
+Some fairly heavy-tailed distributions; transformations might be a good idea. 
+
+```{r}
+df_train %>%
+  select(!id) %>% 
+  plot_histogram(
+    ncol = 3, 
+    scale_x = "log10"
+  )
+```
+
+
+Distributions by target:
+
+```{r}
+df_train %>% 
+  select(!id) %>% 
+  plot_boxplot(by = "Class")
+```
+
+
+```{r}
+plot_bar(df_train)
+```
+Imbalanced data.
+
+## Correlation
+
+```{r}
+df_train %>% 
+  select(!id) %>% 
+  plot_correlation()
+```
+Correlation is not a big problem when we are only concerned with prediction and not inference. Otherwise, some VIF analysis would be in order it seems. 
+
+# Take Aways and To Do
+- Imbalanced data: we need to account for that
+- Some predictors are very heavy-tailed: log transform
+- Normalize predictors after transformation
