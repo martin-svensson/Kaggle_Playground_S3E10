@@ -52,7 +52,7 @@ performance_est <-
     grid_results_best
   ) %>% 
   last_fit(
-    split = data_split,
+    split = output_01$data_split,
     metrics = my_metric_set
   )
 
@@ -132,7 +132,7 @@ subm_pred <-
   )
 
 # -- Calibration
-cal_switch <- TRUE
+cal_switch <- FALSE
 
 if (cal_switch) {
   

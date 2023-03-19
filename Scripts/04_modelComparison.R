@@ -47,10 +47,10 @@ df_train <- training(output_01$data_split)
 
 xgb_spec <- 
   boost_tree(
-    tree_depth = tune(), 
-    learn_rate = tune(), 
-    loss_reduction = tune(), 
-    min_n = 20, 
+    tree_depth = 6, 
+    learn_rate = 0.05, 
+    loss_reduction = 0.01, 
+    min_n = tune(), 
     sample_size = 0.6, 
     trees = 750
   ) %>% 
@@ -117,7 +117,7 @@ tic("grid search")
 grid_results <- 
   wflow %>% 
   workflow_map(
-    "tune_race_anova", # faster, more crude, tuning compared to grid search
+    #"tune_race_anova", # faster, more crude, tuning compared to grid search
     seed = 976,
     resamples = 
       vfold_cv(
@@ -125,7 +125,7 @@ grid_results <-
         v = 5,
         strata = Class
       ),
-    grid = 10,
+    grid = 8,
     control = grid_ctrl,
     metrics = my_metric_set
   )

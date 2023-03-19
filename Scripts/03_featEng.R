@@ -92,7 +92,12 @@ recipe_3 <-
     seed = 1553,
     over_ratio = tune()
   )
-  
+
+# recipe_3_param <- 
+#   recipe_3 %>% 
+#   extract_parameter_set_dials() %>% 
+#   update(over_ratio = over_ratio(c(0.5, 1)))
+
 # ==== EXPORT ------------------------------------------------------------------------------------------ 
 
 output_03 <- 
