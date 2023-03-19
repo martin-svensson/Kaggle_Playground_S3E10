@@ -20,13 +20,12 @@ library(tidymodels)
 ```{r load_data}
 #| cache: true
 
-load("Output/01_df_train.RData")
-load(here("Output/01_data_split.RData"))
+load(here("Output/01_output.RData"))
 ```
 
 Use only training data for the EDA
 ```{r}
-df_train <- training(data_split)
+df_train <- training(output_01$data_split)
 ```
 
 ## Introduction to data
@@ -93,3 +92,4 @@ Correlation is not a big problem when we are only concerned with prediction and 
 - Imbalanced data: we need to account for that
 - Some predictors are very heavy-tailed: log transform
 - Normalize predictors after transformation
+- Try Platt and Isotonic probability calibration

@@ -48,12 +48,13 @@ data_split <-
 
 # ==== EXPORT ------------------------------------------------------------------------------------------ 
 
-save(
-  df_train,
-  file = "./Output/01_df_train.RData"
-)
+output_01 <- 
+  list(
+    "df_train" = df_train,
+    "data_split" = data_split
+  )
 
 save(
-  data_split,
-  file = "./Output/01_data_split.RData"
+  output_01,
+  file = "./Output/01_output.RData"
 )
