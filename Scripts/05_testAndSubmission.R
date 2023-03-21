@@ -28,15 +28,18 @@ df_test <- fread("./Data/test.csv")
 load("./Output/01_output.RData")
 load("./Output/03_output.RData")
 load("./Output/04_output.RData")
+load("./Output/04a_gam_fit.RData")
 
 # ------------------------------------------------------------------------------------------------------ #
 # PROGRAM
 # ------------------------------------------------------------------------------------------------------ #
 
+df_mytest <- testing(output_01$data_split)
+
 best_wflow_id <- "recipe_3_xgboost"
 
 grid_results_best <- 
-  grid_results %>% 
+  output_04$grid_results %>% 
   extract_workflow_set_result(best_wflow_id) %>% 
   select_best(metric = "mn_log_loss")
 
@@ -44,7 +47,7 @@ grid_results_best <-
 # ---- Performance estimate on test set ----------------------------------------
 
 performance_est <- 
-  grid_results %>% 
+  output_04$grid_results %>% 
   extract_workflow(
     best_wflow_id
   ) %>% 
@@ -53,12 +56,27 @@ performance_est <-
   ) %>% 
   last_fit(
     split = output_01$data_split,
-    metrics = my_metric_set
+    metrics = output_04$my_metric_set
+  )
+
+performance_est_gam <- 
+  gam_fit %>% 
+  predict(
+    new_data = df_mytest,
+    type = "prob"
   )
 
 # Performance
 performance_est %>% 
   collect_metrics()
+
+df_mytest %>% 
+  cbind(performance_est_gam) %>% 
+  mn_log_loss(
+    .pred_0, # not sure why it swapped .pred_0 and .pred_1
+    truth = Class
+  )
+# Note: GAM is not included in the following, except for the submission
 
 # Predictions
 df_test_preds <- 
@@ -111,8 +129,9 @@ df_cal_combined %>%
 
 # ---- Submission --------------------------------------------------------------
 
+# xgboost
 wflow_final_spec <- 
-  wflow %>% 
+  output_04$wflow %>% 
   extract_workflow(
     best_wflow_id
   ) %>% 
@@ -122,13 +141,35 @@ wflow_final_spec <-
 
 wflow_final_fit <- 
   wflow_final_spec %>% 
-  fit(df_train)
+  fit(output_01$df_train)
 
 subm_pred <- 
   wflow_final_fit %>% 
   predict(
     new_data = df_test,
     type = "prob"
+  )
+
+# GAM
+subm_pred_gam <- 
+  gam_fit %>% 
+  predict(
+    new_data = df_test,
+    type = "prob"
+  )
+
+# ensemble
+subm_pred_ens <- 
+  subm_pred %>% 
+  select("pred_xgb" = .pred_1) %>% 
+  cbind(
+    subm_pred_gam %>% 
+      select(
+        "pred_gam" = .pred_1
+      ) 
+  ) %>% 
+  mutate(
+    ".pred_1" = (pred_xgb + pred_gam) / 2
   )
 
 # -- Calibration
@@ -160,10 +201,10 @@ if (cal_switch) {
   
   df_subm <- 
     df_test %>% 
-    cbind(subm_pred) %>% 
+    cbind(subm_pred_ens) %>% # swap for gam or ensemble
     select(
       id,
-      "Class" = .pred_1
+      "Class" = .pred_1 
     ) 
   
 }

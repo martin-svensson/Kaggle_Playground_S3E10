@@ -44,21 +44,29 @@ df_train <- training(output_01$data_split)
 # -- xgboost: some parameters are determined based on earlier tuning 
 #   (to ease computation for later tuning, even though potential interaction
 #    effect between parameters may not be captured)
-
 xgb_spec <- 
   boost_tree(
     tree_depth = 6, 
     learn_rate = 0.05, 
     loss_reduction = 0.01, 
-    min_n = tune(), 
+    min_n = 30, 
     sample_size = 0.6, 
     trees = 750
   ) %>% 
   set_engine("xgboost") %>% 
   set_mode("classification")
 
-# -- Neural net: turned out not to be competitive
+# -- GAM
+gam_spec <- 
+  gen_additive_mod(
+    select_features = TRUE,
+    adjust_deg_free = tune()
+  ) %>% 
+  set_engine("mgcv") %>% 
+  set_mode("classification")
 
+
+# -- Neural net: turned out not to be competitive
 nnet_spec <- 
   mlp(
     hidden_units = c(15, 5),
@@ -72,7 +80,6 @@ nnet_spec <-
   
 
 # -- Logistic regression: turned out not to be competitive
-
 logreg_spec <-
   logistic_reg(
     penalty = tune(),
@@ -91,10 +98,43 @@ wflow <-
       ), 
     models = 
       list(
+        "gam" = gam_spec,
         "xgboost" = xgb_spec
       )
   )
 
+# GAM: specify gam formula
+wflow %<>% 
+  update_workflow_model(
+    id = "recipe_3_gam",
+    spec = gam_spec,
+    formula = Class ~ 
+      s(Mean_Integrated, k = 20)
+    + s(SD)
+    + s(EK, k = 30)
+    + s(Skewness)
+    + s(Mean_DMSNR_Curve)
+    + s(SD_DMSNR_Curve)
+    + s(EK_DMSNR_Curve)
+    + s(Skewness_DMSNR_Curve)
+    # interactions
+    + ti(EK, EK_DMSNR_Curve)
+    + ti(SD, SD_DMSNR_Curve)
+    + ti(Skewness, Skewness_DMSNR_Curve)
+  )
+
+# update parameter range for tuning
+recipe_3_xgboost_param <- 
+  wflow %>% 
+  extract_workflow("recipe_3_xgboost") %>% 
+  extract_parameter_set_dials() %>% 
+  update(over_ratio = over_ratio(c(0.5, 1)))
+
+wflow %<>%
+  option_add(
+    param_info = recipe_3_xgboost_param,
+    id = "recipe_3_xgboost"
+  ) 
 
 # ---- Tune models -------------------------------------------------------------
 
@@ -125,7 +165,7 @@ grid_results <-
         v = 5,
         strata = Class
       ),
-    grid = 8,
+    grid = 5,
     control = grid_ctrl,
     metrics = my_metric_set
   )

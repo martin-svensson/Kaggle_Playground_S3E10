@@ -88,15 +88,13 @@ recipe_3 <-
   step_normalize(
     all_numeric()
   ) %>% 
+  step_interact( # from; https://www.kaggle.com/code/paddykb/ps-s3e10-gam-finger-on-the-pulsarrrrr
+    terms = ~ EK:EK_DMSNR_Curve + SD:SD_DMSNR_Curve + Skewness:Skewness_DMSNR_Curve
+  ) %>% 
   themis::step_bsmote(
     seed = 1553,
     over_ratio = tune()
   )
-
-# recipe_3_param <- 
-#   recipe_3 %>% 
-#   extract_parameter_set_dials() %>% 
-#   update(over_ratio = over_ratio(c(0.5, 1)))
 
 # ==== EXPORT ------------------------------------------------------------------------------------------ 
 
